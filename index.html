@@ -7,32 +7,29 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --ink: #1a1612;
-    --gold: #b08c5a;
-    --gold-deep: #8a6a3f;
-    --cream: #f9f6f1;
-    --border: #e2d9cb;
-    --paper: #fffdf8;
-    --sub: #5a4e40;
-    --muted: #8a7d6b;
+    --ink: #1a1612; --gold: #b08c5a; --gold-deep: #8a6a3f;
+    --cream: #f9f6f1; --border: #e2d9cb; --paper: #fffdf8;
+    --sub: #5a4e40; --muted: #8a7d6b;
   }
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  /* Page scrolls naturally — toggle bar is NOT sticky */
   html, body {
     width: 100%;
+    height: 100vh;
     background: var(--cream);
+    overflow: hidden; /* page never scrolls; each iframe scrolls internally */
   }
-
   body {
     font-family: 'DM Sans', sans-serif;
     color: var(--ink);
     -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
   }
 
-  /* ===== TOGGLE BAR — normal flow, scrolls with page ===== */
+  /* ── Toggle bar — fixed height at top ── */
   .toggle-bar {
+    flex: 0 0 auto;
     background: var(--cream);
     border-bottom: 1px solid var(--border);
     padding: 9px 24px;
@@ -41,67 +38,35 @@
     align-items: center;
     gap: 20px;
   }
-
-  .brand {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 17px;
-    font-weight: 500;
-    letter-spacing: 0.2px;
-    color: var(--ink);
-    white-space: nowrap;
-    justify-self: start;
-  }
-  .brand em { font-style: italic; color: var(--gold); font-weight: 400; }
+  .brand { font-family: 'Cormorant Garamond', serif; font-size: 17px;
+           font-weight: 500; letter-spacing: 0.2px; color: var(--ink);
+           white-space: nowrap; justify-self: start; }
+  .brand em  { font-style: italic; color: var(--gold); font-weight: 400; }
   .brand .dot { color: var(--muted); margin: 0 6px; font-weight: 300; }
 
   .toggle-group {
-    display: inline-flex;
-    background: var(--paper);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 3px;
-    position: relative;
-    justify-self: center;
+    display: inline-flex; background: var(--paper);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 3px; position: relative; justify-self: center;
   }
-
   .toggle-btn {
-    position: relative;
-    z-index: 2;
-    border: none;
-    background: transparent;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 10.5px;
-    font-weight: 500;
-    letter-spacing: 1.8px;
-    text-transform: uppercase;
-    color: var(--sub);
-    padding: 7px 22px;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: color 0.25s ease;
-    white-space: nowrap;
+    position: relative; z-index: 2; border: none; background: transparent;
+    font-family: 'DM Sans', sans-serif; font-size: 10.5px; font-weight: 500;
+    letter-spacing: 1.8px; text-transform: uppercase; color: var(--sub);
+    padding: 7px 22px; border-radius: 999px; cursor: pointer;
+    transition: color 0.25s ease; white-space: nowrap;
   }
   .toggle-btn.active { color: #fff; }
   .toggle-btn:not(.active):hover { color: var(--gold); }
-
   .toggle-pill {
-    position: absolute;
-    top: 3px; bottom: 3px;
-    border-radius: 999px;
+    position: absolute; top: 3px; bottom: 3px; border-radius: 999px;
     background: var(--ink);
-    transition: left 0.32s cubic-bezier(0.4,0,0.2,1),
-                width 0.32s cubic-bezier(0.4,0,0.2,1);
+    transition: left .32s cubic-bezier(.4,0,.2,1), width .32s cubic-bezier(.4,0,.2,1);
     z-index: 1;
   }
-
   .view-label {
-    font-size: 10px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--muted);
-    font-weight: 500;
-    white-space: nowrap;
-    justify-self: end;
+    font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--muted); font-weight: 500; white-space: nowrap; justify-self: end;
   }
   .view-label em { font-style: normal; color: var(--gold); }
 
@@ -113,36 +78,59 @@
     .toggle-btn { padding: 6px 14px; font-size: 10px; }
   }
 
-  /* ===== IFRAMES — block, full width, height set by JS ===== */
-  .stage { width: 100%; }
+  /* ── Stage: fills remaining viewport. Each iframe fills the stage
+     completely and scrolls its own content internally. No measurement
+     needed — iframe height is always exactly the viewport height minus
+     the toggle bar. This is bulletproof: no blank space can appear
+     because the iframe's height never exceeds its container, and if
+     the content is shorter than the viewport, the iframe's own body
+     just sits there with its natural cream background. */
+  .stage {
+    flex: 1 1 auto;
+    position: relative;
+    min-height: 0;        /* critical: lets flex child actually shrink */
+    overflow: hidden;
+  }
 
   .stage iframe {
-    display: block;
+    position: absolute;
+    inset: 0;
     width: 100%;
+    height: 100%;
     border: 0;
     background: var(--cream);
   }
 
-  .stage iframe.hidden {
-    display: none;
+  /* Inactive iframe: hidden but still rendered (so state like scroll
+     position and chart animations are preserved when you toggle back) */
+  .stage iframe:not(.active) {
+    visibility: hidden;
+    pointer-events: none;
+    z-index: -1;
+  }
+  .stage iframe.active {
+    visibility: visible;
+    pointer-events: auto;
+    z-index: 1;
   }
 </style>
 </head>
 <body>
   <div class="toggle-bar">
     <div class="brand">GiveLight Foundation<span class="subtitle"><span class="dot">·</span><em>Global Orphan Landscape</em></span></div>
-
     <div class="toggle-group" role="tablist" aria-label="Switch view">
       <span class="toggle-pill" id="togglePill"></span>
       <button class="toggle-btn active" id="btnLandscape" role="tab" aria-selected="true">Research</button>
-      <button class="toggle-btn" id="btnDashboard" role="tab" aria-selected="false">Dashboard</button>
+      <button class="toggle-btn"        id="btnDashboard" role="tab" aria-selected="false">Dashboard</button>
     </div>
-
     <div class="view-label" id="viewLabel">Viewing <em>Research</em></div>
   </div>
 
   <div class="stage">
-    <iframe id="frameLandscape" title="Research Landscape" srcdoc="<!DOCTYPE html>
+    <!-- Landscape starts active (position:relative = in flow).
+         Dashboard starts inactive (position:absolute = off flow but laid out). -->
+    <iframe id="frameLandscape" class="active" title="Research Landscape"
+            srcdoc="<!DOCTYPE html>
 <html lang=&quot;en&quot;>
 <head>
 <meta charset=&quot;UTF-8&quot;>
@@ -2900,7 +2888,8 @@ const obs = new IntersectionObserver(entries => {
 </script>
 </body>
 </html>"></iframe>
-    <iframe id="frameDashboard" title="Strategic Dashboard" class="hidden" srcdoc="<!DOCTYPE html>
+    <iframe id="frameDashboard"               title="Strategic Dashboard"
+            srcdoc="<!DOCTYPE html>
 <html lang=&quot;en&quot;>
 <head>
 <meta charset=&quot;UTF-8&quot; />
@@ -4317,20 +4306,12 @@ body.modal-locked { overflow: hidden; }
 </style>
 
 <style id=&quot;combined-view-overrides&quot;>
-  /* Remove sticky nav — let it scroll with the page */
-  .nav {
-    position: relative !important;
-    top: auto !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: var(--cream) !important;
-  }
-  /* No compensation needed when nav is in-flow */
-  main { padding-top: 8px !important; }
-  /* Tighter nav bar */
-  .nav-inner { padding: 6px 32px !important; }
-  /* Slight zoom-out */
-  body { zoom: 0.9; }
+  .nav          { position: relative !important; top: auto !important;
+                  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+                  background: var(--cream) !important; }
+  .nav-inner    { padding: 6px 32px !important; }
+  main          { padding-top: 8px !important; }
+  body          { zoom: 0.9; }
 </style>
 </head>
 <body>
@@ -5334,7 +5315,7 @@ document.querySelectorAll('.nav-link').forEach(btn => {
   </div>
 
 <script>
-(function() {
+(function () {
   const btnL   = document.getElementById('btnLandscape');
   const btnD   = document.getElementById('btnDashboard');
   const frameL = document.getElementById('frameLandscape');
@@ -5342,43 +5323,41 @@ document.querySelectorAll('.nav-link').forEach(btn => {
   const pill   = document.getElementById('togglePill');
   const label  = document.getElementById('viewLabel');
 
-  /* Size an iframe to its full content height so the outer page scrolls */
-  function sizeIframe(iframe) {
-    try {
-      const doc = iframe.contentDocument || iframe.contentWindow.document;
-      const h = Math.max(
-        doc.body ? doc.body.scrollHeight : 0,
-        doc.documentElement ? doc.documentElement.scrollHeight : 0,
-        600
-      );
-      iframe.style.height = h + 'px';
-    } catch(e) {
-      iframe.style.height = '7000px'; // same-origin fallback
-    }
-  }
+  /* No iframe sizing needed: each iframe is CSS-sized to fill the stage,
+     and its own content scrolls internally. If content is shorter than
+     the viewport, the iframe just shows its own cream background below
+     the content — which is fine visually. No JS measurement = no blank
+     space, no clipping, no race conditions. */
 
-  frameL.addEventListener('load', () => sizeIframe(frameL));
-  frameD.addEventListener('load', () => sizeIframe(frameD));
-
-  function movePill(activeBtn) {
-    const g = activeBtn.parentElement;
+  function movePill(btn) {
+    const g  = btn.parentElement;
     const gr = g.getBoundingClientRect();
-    const br = activeBtn.getBoundingClientRect();
+    const br = btn.getBoundingClientRect();
     pill.style.left  = (br.left - gr.left) + 'px';
     pill.style.width = br.width + 'px';
   }
 
   function activate(which) {
-    const toLandscape = which === 'landscape';
+    const toLandscape = (which === 'landscape');
     btnL.classList.toggle('active', toLandscape);
     btnD.classList.toggle('active', !toLandscape);
-    btnL.setAttribute('aria-selected', toLandscape);
+    btnL.setAttribute('aria-selected',  toLandscape);
     btnD.setAttribute('aria-selected', !toLandscape);
-    frameL.classList.toggle('hidden', !toLandscape);
-    frameD.classList.toggle('hidden', toLandscape);
-    label.innerHTML = toLandscape ? 'Viewing <em>Research</em>' : 'Viewing <em>Dashboard</em>';
+    frameL.classList.toggle('active',  toLandscape);
+    frameD.classList.toggle('active', !toLandscape);
+    label.innerHTML = toLandscape
+      ? 'Viewing <em>Research</em>'
+      : 'Viewing <em>Dashboard</em>';
     movePill(toLandscape ? btnL : btnD);
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    /* Scroll the newly-active iframe's content to top (not the outer page,
+       which doesn't scroll anymore). Wrapped in try — cross-origin would
+       fail, but these are srcdoc (same-origin) so it's safe. */
+    try {
+      const activeFrame = toLandscape ? frameL : frameD;
+      if (activeFrame.contentWindow) {
+        activeFrame.contentWindow.scrollTo({ top: 0, behavior: 'instant' });
+      }
+    } catch (e) { /* ignore */ }
   }
 
   btnL.addEventListener('click', () => activate('landscape'));
@@ -5387,6 +5366,7 @@ document.querySelectorAll('.nav-link').forEach(btn => {
   function initPill() { movePill(btnL); }
   if (document.readyState !== 'loading') initPill();
   else document.addEventListener('DOMContentLoaded', initPill);
+
   window.addEventListener('resize', () => {
     const a = document.querySelector('.toggle-btn.active');
     if (a) movePill(a);
@@ -5396,9 +5376,9 @@ document.querySelectorAll('.nav-link').forEach(btn => {
     if (e.target.classList && e.target.classList.contains('toggle-btn')) {
       if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
         e.preventDefault();
-        const goTo = btnL.classList.contains('active') ? 'dashboard' : 'landscape';
-        activate(goTo);
-        (goTo === 'landscape' ? btnL : btnD).focus();
+        const go = btnL.classList.contains('active') ? 'dashboard' : 'landscape';
+        activate(go);
+        (go === 'landscape' ? btnL : btnD).focus();
       }
     }
   });
